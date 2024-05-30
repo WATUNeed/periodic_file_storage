@@ -14,18 +14,21 @@ services:
     ports:
     - "6379:6379"
 
-  file_factory:
-    image: file_factory
-    container_name: file_factory
+  file_factory_worker:
+    image: file_factory_worker
+    container_name: file_factory_worker
     build:
       context: .
       dockerfile: ./file_factory/Dockerfile
-    command: celery -A src.app:app worker -l info
     environment:
       - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
       - RESULT_BACKEND=redis://redis:6379/0
       - C_FORCE_ROOT=true
-      - SERVER=server
+      - SERVER=file_factory_worker
+    volumes:
+      - file_factory:/file_factory/files/
+    command:
+      celery -A src.app:app worker -l info
     depends_on:
       - rabbitmq
       - redis
@@ -37,19 +40,22 @@ services:
       - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
       - RESULT_BACKEND=redis://redis:6379/0
       - C_FORCE_ROOT=true
-      - SERVER=server
+      - SERVER=file_factory_worker
     build:
       context: .
       dockerfile: ./file_factory/Dockerfile
+    volumes:
+      - file_factory:/file_factory/files/
     command:
       celery -A src.app:app beat -l INFO
     depends_on:
       - rabbitmq
       - redis
 
-  server:
-    image: server
-    container_name: server
+  file_factory:
+    image: file_factory
+    container_name: file_factory
+    hostname: file_factory
     environment:
       - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
       - RESULT_BACKEND=redis://redis:6379/0
@@ -58,10 +64,50 @@ services:
     build:
       context: .
       dockerfile: ./file_factory/Dockerfile
+    volumes:
+      - file_factory:/file_factory/files/
     command:
-      sftpserver -k /file_factory/test_rsa.key -l DEBUG
+      python3 src/main.py
     depends_on:
       - rabbitmq
       - redis
     ports:
-      - 3373:3373
+      - 2222:2222
+
+  file_keeper_worker:
+    image: file_keeper_worker
+    container_name: file_keeper_worker
+    environment:
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+    build:
+      context: .
+      dockerfile: ./file_keeper/Dockerfile
+    command:
+      celery -A src.app:app worker -l info
+    depends_on:
+      - file_factory
+      - rabbitmq
+      - redis
+
+  file_keeper_beat:
+    image: file_keeper_beat
+    container_name: file_keeper_beat
+    environment:
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+    build:
+      context: .
+      dockerfile: ./file_keeper/Dockerfile
+    command:
+      celery -A src.app:app beat -l info
+    depends_on:
+      - file_factory
+      - rabbitmq
+      - redis
+
+
+volumes:
+  file_factory:

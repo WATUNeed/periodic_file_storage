@@ -1,9 +1,9 @@
 import datetime
+import os
 from os import environ
 from random import randint
 
 from celery import Celery
-from paramiko.channel import Channel
 
 environ.setdefault('CELERY_CONFIG_MODULE', 'src.celery_config')
 
@@ -19,7 +19,9 @@ def setup_periodic_tasks(sender, **kwargs):
 @app.task
 def create_file_task():
     size = randint(1, 1000)
-    path = f'{int(datetime.datetime.now(datetime.UTC).timestamp())}'
+    filename = f'{int(datetime.datetime.now(datetime.UTC).timestamp())}'
+    path = '/'.join(os.path.abspath(__file__).split('/')[:-2] + ['files'] + [filename])
+    print(f'{path = }')
     with open(path, mode='wb+') as file:
         file.seek(size - 1)
         file.write(b"\0")

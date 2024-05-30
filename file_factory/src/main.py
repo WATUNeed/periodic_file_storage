@@ -1,3 +1,4 @@
+import os
 import time
 import socket
 import optparse
@@ -9,7 +10,7 @@ from sftpserver.stub_sftp import StubServer, StubSFTPServer
 
 import threading
 
-HOST, PORT = 'localhost', 2222
+HOST, PORT = 'file_factory', 2222
 BACKLOG = 10
 
 
@@ -72,8 +73,10 @@ def main():
         help='Path to private key, for example /tmp/test_rsa.key'
         )
 
+    path = '/'.join(os.path.abspath(__file__).split('/')[:-1] + ["/test_rsa.key"])
+
     options, args = parser.parse_args()
-    options.keyfile = "test_rsa.key"
+    options.keyfile = path
 
     if options.keyfile is None:
         parser.print_help()

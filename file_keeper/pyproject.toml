@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "file-factory"
+name = "file-keeper"
 version = "0.1.0"
 description = ""
 authors = ["WATUNeed <maxconal228@gmail.com>"]
@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.11"
 celery = {extras = ["redis"], version = "^5.4.0"}
 paramiko = "^3.4.0"
-sftpserver = "^0.3"
 
 
 [build-system]
