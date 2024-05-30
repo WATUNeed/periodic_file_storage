@@ -1,0 +1,67 @@
+services:
+  rabbitmq:
+    image: rabbitmq
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+    - "6379:6379"
+
+  file_factory:
+    image: file_factory
+    container_name: file_factory
+    build:
+      context: .
+      dockerfile: ./file_factory/Dockerfile
+    command: celery -A src.app:app worker -l info
+    environment:
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+      - SERVER=server
+    depends_on:
+      - rabbitmq
+      - redis
+
+  file_factory_beat:
+    image: file_factory_beat
+    container_name: file_factory_beat
+    environment:
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+      - SERVER=server
+    build:
+      context: .
+      dockerfile: ./file_factory/Dockerfile
+    command:
+      celery -A src.app:app beat -l INFO
+    depends_on:
+      - rabbitmq
+      - redis
+
+  server:
+    image: server
+    container_name: server
+    environment:
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+      - SERVER=server
+    build:
+      context: .
+      dockerfile: ./file_factory/Dockerfile
+    command:
+      sftpserver -k /file_factory/test_rsa.key -l DEBUG
+    depends_on:
+      - rabbitmq
+      - redis
+    ports:
+      - 3373:3373
