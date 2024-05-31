@@ -13,12 +13,13 @@ app.config_from_envvar('CELERY_CONFIG_MODULE')
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(10.0, create_file_task.s(), name='add every 10')
+    # create_file_task.s().delay()
+    sender.add_periodic_task(60.0, create_file_task.s(), name='add every 10')
 
 
 @app.task
 def create_file_task():
-    size = randint(1, 1000)
+    size = randint(1073741814, 1073741814 * 2)
     filename = f'{int(datetime.datetime.now(datetime.UTC).timestamp())}'
     path = '/'.join(os.path.abspath(__file__).split('/')[:-2] + ['files'] + [filename])
     print(f'{path = }')

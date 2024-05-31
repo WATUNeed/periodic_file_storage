@@ -1,9 +1,13 @@
 services:
   rabbitmq:
-    image: rabbitmq
+    image: rabbitmq:3.12.14-management-alpine
     container_name: rabbitmq
     ports:
-      - "5672:5672"
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=mypass
@@ -12,7 +16,7 @@ services:
     image: redis
     container_name: redis
     ports:
-    - "6379:6379"
+      - "6379:6379"
 
   file_factory_worker:
     image: file_factory_worker
@@ -21,7 +25,7 @@ services:
       context: .
       dockerfile: ./file_factory/Dockerfile
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
       - RESULT_BACKEND=redis://redis:6379/0
       - C_FORCE_ROOT=true
       - SERVER=file_factory_worker
@@ -37,7 +41,7 @@ services:
     image: file_factory_beat
     container_name: file_factory_beat
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
       - RESULT_BACKEND=redis://redis:6379/0
       - C_FORCE_ROOT=true
       - SERVER=file_factory_worker
@@ -55,9 +59,9 @@ services:
   file_factory:
     image: file_factory
     container_name: file_factory
-    hostname: file_factory
+    hostname: factory0
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
       - RESULT_BACKEND=redis://redis:6379/0
       - C_FORCE_ROOT=true
       - SERVER=server
@@ -78,8 +82,9 @@ services:
     image: file_keeper_worker
     container_name: file_keeper_worker
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
       - RESULT_BACKEND=redis://redis:6379/0
+      - FACTORIES=[factory0]
       - C_FORCE_ROOT=true
     build:
       context: .
@@ -95,8 +100,9 @@ services:
     image: file_keeper_beat
     container_name: file_keeper_beat
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672//
+      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
       - RESULT_BACKEND=redis://redis:6379/0
+      - FACTORIES=[factory0]
       - C_FORCE_ROOT=true
     build:
       context: .
