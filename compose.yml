@@ -108,6 +108,18 @@ services:
       - rabbitmq
       - redis
 
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    hostname: minio
+    volumes:
+      - minio:/data
+    environment:
+      - MINIO_ROOT_USER=ROOTNAME
+      - MINIO_ROOT_PASSWORD=CHANGEME123
+    command:
+      server /data --console-address ":9001"
 
 volumes:
   file_factory:
+  minio:
