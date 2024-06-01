@@ -12,11 +12,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN pip install "poetry==$POETRY_VERSION"
 
-WORKDIR /file_factory/
+WORKDIR /factory/
 
-COPY file_factory/poetry.lock file_factory/pyproject.toml /file_factory/
+COPY factory/poetry.lock factory/pyproject.toml /factory/
 
 RUN poetry config virtualenvs.create false && \
     poetry install --no-dev --no-interaction --no-ansi
 
-COPY file_factory/ /file_factory/
+COPY factory/ /factory/

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "file-factory"
+name = "file-keeper"
 version = "0.1.0"
 description = ""
 authors = ["WATUNeed <maxconal228@gmail.com>"]
@@ -7,9 +7,13 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-celery = {extras = ["redis"], version = "^5.4.0"}
+celery = "^5.4.0"
 paramiko = "^3.4.0"
-sftpserver = "^0.3"
+minio = "^7.2.7"
+pika = "^1.3.2"
+pydantic = "^2.7.2"
+pydantic-settings = "^2.2.1"
+redis = "^5.0.4"
 
 
 [build-system]

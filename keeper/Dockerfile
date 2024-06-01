@@ -12,11 +12,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN pip install "poetry==$POETRY_VERSION"
 
-WORKDIR /file_keeper/
+WORKDIR /keeper/
 
-COPY file_keeper/poetry.lock file_keeper/pyproject.toml /file_keeper/
+COPY keeper/poetry.lock keeper/pyproject.toml /keeper/
 
 RUN poetry config virtualenvs.create false && \
     poetry install --no-dev --no-interaction --no-ansi
 
-COPY file_keeper/ /file_keeper/
+COPY keeper/ /keeper/

@@ -1,0 +1,2 @@
+class FileAlreadyInProcessError(ValueError):
+    pass

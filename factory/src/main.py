@@ -1,4 +1,3 @@
-import os
 import time
 import socket
 import optparse
@@ -10,7 +9,8 @@ from sftpserver.stub_sftp import StubServer, StubSFTPServer
 
 import threading
 
-HOST, PORT = 'file_factory', 2222
+from src.config.sftp import SFTP_CONFIG
+
 BACKLOG = 10
 
 
@@ -58,10 +58,10 @@ def main():
     """
     parser = optparse.OptionParser(usage=textwrap.dedent(usage))
     parser.add_option(
-        '--host', dest='host', default=HOST,
+        '--host', dest='host', default=SFTP_CONFIG.host,
         help='listen on HOST [default: %default]')
     parser.add_option(
-        '-p', '--port', dest='port', type='int', default=PORT,
+        '-p', '--port', dest='port', type='int', default=SFTP_CONFIG.port,
         help='listen on PORT [default: %default]'
         )
     parser.add_option(
@@ -73,7 +73,7 @@ def main():
         help='Path to private key, for example /tmp/test_rsa.key'
         )
 
-    path = '/'.join(os.path.abspath(__file__).split('/')[:-1] + ["/test_rsa.key"])
+    path = SFTP_CONFIG.rsa_key_path
 
     options, args = parser.parse_args()
     options.keyfile = path

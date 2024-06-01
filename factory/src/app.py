@@ -5,7 +5,7 @@ from random import randint
 
 from celery import Celery
 
-environ.setdefault('CELERY_CONFIG_MODULE', 'src.celery_config')
+environ.setdefault('CELERY_CONFIG_MODULE', 'src.config.celery')
 
 app = Celery()
 app.config_from_envvar('CELERY_CONFIG_MODULE')

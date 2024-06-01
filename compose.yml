@@ -3,129 +3,119 @@ services:
     image: rabbitmq:3.12.14-management-alpine
     container_name: rabbitmq
     ports:
-      - 5672:5672
+      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
       - 15672:15672
+    env_file:
+      - .env
     volumes:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=mypass
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
 
   redis:
-    image: redis
     container_name: redis
+    image: redis:7-alpine
+    hostname: redis
+    command:
+      redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6379:6379"
+      - ${REDIS_PORT}:${REDIS_PORT}
 
-  file_factory_worker:
-    image: file_factory_worker
-    container_name: file_factory_worker
+  factory0:
+    container_name: factory0
+    hostname: factory0
+    env_file:
+      - .env
+    ports:
+      - ${SFTP_PORT}:${SFTP_PORT}
+    environment:
+      - SFTP_HOST=factory0
     build:
       context: .
-      dockerfile: ./file_factory/Dockerfile
-    environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
-      - RESULT_BACKEND=redis://redis:6379/0
-      - C_FORCE_ROOT=true
-      - SERVER=file_factory_worker
+      dockerfile: ./factory/Dockerfile
     volumes:
-      - file_factory:/file_factory/files/
+      - factory0:/factory/files/
     command:
-      celery -A src.app:app worker -l info
+      python3 -m src.main
     depends_on:
       - rabbitmq
-      - redis
 
-  file_factory_beat:
-    image: file_factory_beat
-    container_name: file_factory_beat
-    environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
-      - RESULT_BACKEND=redis://redis:6379/0
-      - C_FORCE_ROOT=true
-      - SERVER=file_factory_worker
+  factory0_worker:
+    container_name: factory0_worker
+    env_file:
+      - .env
     build:
       context: .
-      dockerfile: ./file_factory/Dockerfile
+      dockerfile: ./factory/Dockerfile
     volumes:
-      - file_factory:/file_factory/files/
+      - factory0:/factory/files/
+    command:
+      celery -A src.app:app worker -l INFO
+    depends_on:
+      - rabbitmq
+
+  factory0_beat:
+    container_name: factory0_beat
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: ./factory/Dockerfile
+    volumes:
+      - factory0:/factory/files/
     command:
       celery -A src.app:app beat -l INFO
     depends_on:
       - rabbitmq
-      - redis
 
-  file_factory:
-    image: file_factory
-    container_name: file_factory
-    hostname: factory0
+  keeper_worker:
+    image: keeper_worker
+    container_name: keeper_worker
+    env_file:
+      - .env
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
-      - RESULT_BACKEND=redis://redis:6379/0
-      - C_FORCE_ROOT=true
-      - SERVER=server
+      - FACTORY_HOSTS=factory0,
     build:
       context: .
-      dockerfile: ./file_factory/Dockerfile
-    volumes:
-      - file_factory:/file_factory/files/
+      dockerfile: ./keeper/Dockerfile
     command:
-      python3 src/main.py
+      celery -A src.app:app worker -l INFO
     depends_on:
+      - factory0
       - rabbitmq
-      - redis
-    ports:
-      - 2222:2222
+      - minio
 
-  file_keeper_worker:
-    image: file_keeper_worker
-    container_name: file_keeper_worker
+  keeper_beat:
+    image: keeper_beat
+    container_name: keeper_beat
+    env_file:
+      - .env
     environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
-      - RESULT_BACKEND=redis://redis:6379/0
-      - FACTORIES=[factory0]
-      - C_FORCE_ROOT=true
+      - FACTORY_HOSTS=factory0,
     build:
       context: .
-      dockerfile: ./file_keeper/Dockerfile
+      dockerfile: ./keeper/Dockerfile
     command:
-      celery -A src.app:app worker -l info
+      celery -A src.app:app beat -l INFO
     depends_on:
-      - file_factory
+      - factory0
       - rabbitmq
-      - redis
-
-  file_keeper_beat:
-    image: file_keeper_beat
-    container_name: file_keeper_beat
-    environment:
-      - BROKER_URL=amqp://admin:mypass@rabbitmq:5672
-      - RESULT_BACKEND=redis://redis:6379/0
-      - FACTORIES=[factory0]
-      - C_FORCE_ROOT=true
-    build:
-      context: .
-      dockerfile: ./file_keeper/Dockerfile
-    command:
-      celery -A src.app:app beat -l info
-    depends_on:
-      - file_factory
-      - rabbitmq
-      - redis
 
   minio:
     container_name: minio
     image: quay.io/minio/minio
-    hostname: minio
+    ports:
+      - 9000:9000
     volumes:
       - minio:/data
     environment:
-      - MINIO_ROOT_USER=ROOTNAME
-      - MINIO_ROOT_PASSWORD=CHANGEME123
+      - MINIO_ROOT_USER=${MINIO_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
     command:
-      server /data --console-address ":9001"
+      server /data
 
 volumes:
-  file_factory:
+  factory0:
   minio:
